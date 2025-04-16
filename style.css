@@ -1,0 +1,119 @@
+/* Add any additional custom styles here */
+body {
+    background-color: #f9f9f9;
+    font-family: 'Roboto', sans-serif;
+}
+
+.container {
+    max-width: 800px;
+    margin: 0 auto;
+    padding: 20px;
+}
+
+.row {
+    margin-bottom: 20px;
+}
+
+/* Tool Panel Styles */
+
+
+.tool-panel label {
+    font-size: 0.8em;
+}
+
+.tool-panel input[type="range"] {
+    -webkit-appearance: none;
+    appearance: none;
+    background-color: #ddd;
+    height: 5px;
+    width: 100%;
+    border-radius: 10px;
+    outline: none;
+    /* Remove outline on focus */
+}
+
+.tool-panel input[type="range"]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 15px;
+    height: 15px;
+    border-radius: 50%;
+    background: #4CAF50;
+    /* Slider handle color */
+    cursor: pointer;
+    /* Reiterate that this is draggable */
+}
+
+.tool-panel input[type="range"]::-moz-range-thumb {
+    width: 15px;
+    height: 15px;
+    border-radius: 50%;
+    background: #4CAF50;
+    cursor: pointer;
+}
+
+.tool-panel button {
+    background-color: #4CAF50;
+    /* Button color */
+    color: white;
+    border: none;
+    padding: 5px 10px;
+    border-radius: 4px;
+    cursor: pointer;
+}
+
+.tool-panel button:hover {
+    background-color: #45a049;
+    /* Button hover state color */
+}
+
+/* Add styles for smaller screen sizes if needed */
+.tool-panel {
+    position: absolute;
+    padding: 10px;
+    background: #fff;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    z-index: 1000;
+    display: flex;
+    max-width: 200px;
+    left: -200px;
+    /* FIXED: added 'px' */
+    flex-direction: column;
+    gap: 10px;
+    transition: transform 0.3s ease-in-out;
+}
+
+/* Mobile override: tool panel should be static */
+@media (max-width: 768px) {
+    .tool-panel {
+        position: fixed !important;
+        left: 0 !important;
+        bottom: 0 !important;
+        top: unset !important;
+        width: 100%;
+        max-width: none;
+        border-top: 1px solid #ddd;
+        border-left: none;
+        border-right: none;
+        border-bottom: none;
+        border-radius: 0;
+        flex-direction: row;
+        flex-wrap: wrap;
+        align-items: center;
+        overflow-x: auto;
+        overflow-y: hidden;
+        padding: 10px;
+        gap: 12px;
+        background-color: #fff;
+        box-shadow: 0 -2px 6px rgba(0, 0, 0, 0.05);
+    }
+
+    .tool-panel button,
+    .tool-panel .file-field,
+    .tool-panel input[type="range"] {
+        flex: 0 0 auto;
+        min-width: max-content;
+    }
+}

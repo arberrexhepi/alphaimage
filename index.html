@@ -33,6 +33,9 @@
     <div id="toolPanel" class="tool-panel">
         <button id="undoButton" class="btn-small">Undo</button>
         <button id="redoButton" class="btn-small">Redo</button>
+        <button id="cropButton" class="btn-small">Crop</button>
+        <button id="confirmCropButton" class="btn-small" style="display:none;">Confirm Crop</button>
+        <button id="cancelCropButton" class="btn-small" style="display:none;">Cancel Crop</button>
         <div class="color-mode-switch">
             <label>
                 <input type="checkbox" id="floodToggle" checked>
@@ -46,6 +49,22 @@
         <input type="range" id="featherSlider" min="0" max="100" step="0.5" value="1">
 
         <button id="saveButton" class="btn-small">Save as</button>
+
+        <div class="tool-section">
+            <h6>Resize</h6>
+            <label for="resizeWidthInput">New Width:</label>
+            <input type="number" id="resizeWidthInput" class="input-field">
+            <label for="resizeHeightInput">New Height:</label>
+            <input type="number" id="resizeHeightInput" class="input-field">
+            <p class="checkbox-container">
+                <label>
+                    <input type="checkbox" id="maintainAspectRatioCheckbox" checked />
+                    <span>Maintain Aspect Ratio</span>
+                </label>
+            </p>
+            <button id="applyResizeButton" class="btn-small">Apply Resize</button>
+        </div>
+
         <div class="file-field input-field">
             <div class="btn-small">
                 <span>Upload</span>

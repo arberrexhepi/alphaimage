@@ -19,7 +19,59 @@ body {
 
 .tool-panel label {
     font-size: 0.8em;
+    display: block; /* Ensure labels take full width for better layout */
+    margin-bottom: 2px; /* Space below label */
 }
+
+/* Styling for new Resize Input Fields */
+#resizeWidthInput,
+#resizeHeightInput {
+    color: white;
+    background-color: #5a5a5a; /* Dark grey background */
+    border: 1px solid #777;   /* Slightly lighter border */
+    padding: 5px;
+    width: 70px;              /* Fixed width */
+    border-radius: 3px;
+    margin-bottom: 8px;       /* Space below each input */
+    box-sizing: border-box;
+}
+
+/* Remove spinner arrows for number inputs (optional, for cleaner look) */
+#resizeWidthInput::-webkit-outer-spin-button,
+#resizeWidthInput::-webkit-inner-spin-button,
+#resizeHeightInput::-webkit-outer-spin-button,
+#resizeHeightInput::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+}
+#resizeWidthInput[type=number],
+#resizeHeightInput[type=number] {
+    -moz-appearance: textfield; /* Firefox */
+}
+
+
+/* Styling for the checkbox container */
+.checkbox-container {
+    margin-top: 5px;
+    margin-bottom: 10px;
+}
+/* Materialize handles checkbox label color by default, should be okay. */
+
+
+/* Styling for the tool-section */
+.tool-section {
+    padding: 10px 0; /* Vertical padding */
+    margin-top: 10px;  /* Margin above section */
+    border-top: 1px solid #ddd; /* Separator line, matches panel border */
+    margin-bottom: 5px; /* Space below section */
+}
+
+.tool-section h6 {
+    font-size: 1rem; /* More appropriate size for this context */
+    color: #333;      /* Standard text color */
+    margin-bottom: 10px; /* Space below header */
+}
+
 
 .tool-panel input[type="range"] {
     -webkit-appearance: none;

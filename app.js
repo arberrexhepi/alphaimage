@@ -2,6 +2,7 @@
 const canvas = document.getElementById("canvas");
 const ctx = canvas.getContext("2d");
 let originalImageData = null; // Initialize as null
+let fullResolutionImage = null; // To store the original uploaded image object
 let currentImageData;
 let clickColor;
 let currentState = -1;
@@ -35,6 +36,11 @@ const resizeWidthInput = document.getElementById("resizeWidthInput");
 const resizeHeightInput = document.getElementById("resizeHeightInput");
 const maintainAspectRatioCheckbox = document.getElementById("maintainAspectRatioCheckbox");
 const applyResizeButton = document.getElementById("applyResizeButton");
+
+// Help Modal Elements
+const helpButton = document.getElementById('helpButton');
+const helpModal = document.getElementById('helpModal');
+const closeHelpModal = document.getElementById('closeHelpModal');
 
 
 document.getElementById("floodToggle").addEventListener("change", function (e) {
@@ -117,45 +123,77 @@ document.getElementById("imageUpload").addEventListener("change", function (e) {
       const img = new Image();
 
       img.onload = function () {
+        fullResolutionImage = this; // Store the full-resolution image object
+
         // Reset cropping state if a new image is loaded
         if (isCropping) {
           cancelCropButton.click(); // Simulate cancel to reset UI
         }
-        if (currentImageData !== undefined) {
-          currentImadaData = "";
-          originalImageData = "";
-          canvas.width = "";
-          canvas.height = "";
-        }
-        canvas.width = img.width;
-        canvas.height = img.height;
-        ctx.drawImage(img, 0, 0, img.width, img.height);
 
-        // 1. Capture and set the structured originalImageData
-        const initialImgData = ctx.getImageData(0, 0, img.width, img.height);
+        // Calculate Max Canvas Dimensions
+        const viewportWidth = window.innerWidth;
+        const viewportHeight = window.innerHeight;
+        const maxCanvasWidth = viewportWidth * 0.9;
+        const maxCanvasHeight = viewportHeight * 0.9;
+
+        // Calculate Scaled Image Dimensions
+        let scaledWidth = fullResolutionImage.width;
+        let scaledHeight = fullResolutionImage.height;
+        const aspectRatio = fullResolutionImage.width / fullResolutionImage.height;
+
+        if (scaledWidth > maxCanvasWidth) {
+          scaledWidth = maxCanvasWidth;
+          scaledHeight = scaledWidth / aspectRatio;
+        }
+        if (scaledHeight > maxCanvasHeight) {
+          scaledHeight = maxCanvasHeight;
+          scaledWidth = scaledHeight * aspectRatio;
+        }
+
+        scaledWidth = Math.round(scaledWidth);
+        scaledHeight = Math.round(scaledHeight);
+        if (scaledWidth <= 0) scaledWidth = 1;
+        if (scaledHeight <= 0) scaledHeight = 1;
+        
+        // Update Canvas and Draw Scaled Image
+        if (currentImageData !== undefined) { // Existing reset logic for variables
+          currentImadaData = ""; // Note: currentImadaData looks like a typo, should be currentImageData
+          // originalImageData = null; // Reset originalImageData structure
+          // stateHistory = []; // Reset history
+          // currentStateIndex = -1;
+        }
+        // Clear previous image data variables explicitly if needed, or rely on overwrite
+        currentImageData = undefined; 
+        originalImageData = null; 
+        stateHistory = [];
+        currentStateIndex = -1;
+
+
+        canvas.width = scaledWidth;
+        canvas.height = scaledHeight;
+        ctx.drawImage(fullResolutionImage, 0, 0, canvas.width, canvas.height); // Draw scaled
+
+        // Update originalImageData (for display state and aspect ratio of displayed image)
+        const initialDisplayImageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
         originalImageData = { 
-            imageData: initialImgData, 
-            width: img.width, 
-            height: img.height 
+            imageData: initialDisplayImageData, 
+            width: canvas.width, // Use canvas.width (scaled width)
+            height: canvas.height // Use canvas.height (scaled height)
         };
 
-        // 2. currentImageData is a copy of the initial image data
+        // Update currentImageData
         currentImageData = ctx.createImageData(originalImageData.imageData.width, originalImageData.imageData.height);
         currentImageData.data.set(originalImageData.imageData.data);
         
-        // document.getElementById("instructions").style.display = "none"; // Already done
-        
-        // 3. Add the initial state to history (uses currentImageData and current canvas dimensions)
-        // Ensure canvas dimensions are set before addNewState if addNewState relies on them. They are.
+        // Add the initial state to history
         addNewState(currentImageData); 
 
-        // Populate resize inputs with original dimensions
-        // This uses the new structure of originalImageData
-        if (originalImageData) { 
-          resizeWidthInput.value = originalImageData.width;
-          resizeHeightInput.value = originalImageData.height;
-        }
-        document.getElementById("instructions").style.display = "none"; // Moved after resize inputs populated
+        // Update Resize Input Fields
+        resizeWidthInput.value = canvas.width;
+        resizeHeightInput.value = canvas.height;
+        
+        // Hide Instructions Div - This is now handled by the modal being hidden by default
+        // document.getElementById("instructions").style.display = "none"; 
       };
 
       img.onerror = function () {
@@ -788,3 +826,21 @@ document.addEventListener("mouseup", function () {
 
 // Add your undo and redo function definitions here
 // These are already defined earlier in the script.
+
+
+// --- Help Modal Event Listeners ---
+if (helpButton && helpModal && closeHelpModal) {
+    helpButton.addEventListener('click', function() {
+        helpModal.style.display = 'block';
+    });
+
+    closeHelpModal.addEventListener('click', function() {
+        helpModal.style.display = 'none';
+    });
+
+    window.addEventListener('click', function(event) {
+        if (event.target == helpModal) {
+            helpModal.style.display = 'none';
+        }
+    });
+}

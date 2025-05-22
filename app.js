@@ -75,6 +75,14 @@ function undo() {
   if (currentStateIndex > 0) { // Was previously in history, move to prior history state
     currentStateIndex--;
     const stateToRestore = stateHistory[currentStateIndex];
+
+    // Add temporary debug logs for UNDO (history state)
+    console.log('Restoring state in UNDO (from history):');
+    console.log('State dimensions:', stateToRestore.width, 'x', stateToRestore.height);
+    if (stateToRestore.imageData && stateToRestore.imageData.data.length > 4) {
+        console.log('Sample imageData (first 4 values):', stateToRestore.imageData.data.slice(0, 4));
+    }
+
     canvas.width = stateToRestore.width;
     canvas.height = stateToRestore.height;
     currentImageData = stateToRestore.imageData; // Use direct reference
@@ -84,6 +92,15 @@ function undo() {
   } else if (currentStateIndex === 0) { // Was at the first history state, move to original
     currentStateIndex = -1;
     if (originalImageData && typeof originalImageData.width !== 'undefined') { // Check if originalImageData and its properties are set
+        const stateToRestore = originalImageData; // Use originalImageData as the state object for logging
+
+        // Add temporary debug logs for UNDO (original state)
+        console.log('Restoring state in UNDO (to original):');
+        console.log('State dimensions:', stateToRestore.width, 'x', stateToRestore.height);
+        if (stateToRestore.imageData && stateToRestore.imageData.data.length > 4) {
+            console.log('Sample imageData (first 4 values):', stateToRestore.imageData.data.slice(0, 4));
+        }
+        
         canvas.width = originalImageData.width;
         canvas.height = originalImageData.height;
         
@@ -105,6 +122,14 @@ function redo() {
   if (currentStateIndex < stateHistory.length - 1) {
     currentStateIndex++;
     const stateToRestore = stateHistory[currentStateIndex];
+
+    // Add temporary debug logs for REDO
+    console.log('Restoring state in REDO:');
+    console.log('State dimensions:', stateToRestore.width, 'x', stateToRestore.height);
+    if (stateToRestore.imageData && stateToRestore.imageData.data.length > 4) {
+        console.log('Sample imageData (first 4 values):', stateToRestore.imageData.data.slice(0, 4));
+    }
+
     canvas.width = stateToRestore.width;
     canvas.height = stateToRestore.height;
     currentImageData = stateToRestore.imageData; // Use direct reference
@@ -439,6 +464,13 @@ confirmCropButton.addEventListener('click', () => {
     currentImageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
     // originalImageData = currentImageData; // REMOVED: originalImageData should be immutable
     
+    // Add temporary debug logs
+    console.log('Saving crop state:');
+    console.log('Canvas dimensions:', canvas.width, 'x', canvas.height);
+    if (currentImageData && currentImageData.data.length > 4) {
+        console.log('Sample imageData (first 4 values):', currentImageData.data.slice(0, 4));
+    }
+
     // Add new state to history
     addNewState(currentImageData);
 

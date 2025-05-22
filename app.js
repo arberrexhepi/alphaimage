@@ -13,6 +13,7 @@ let globalOff = true;
 let isCropping = false;
 let cropRectangle = { startX: 0, startY: 0, endX: 0, endY: 0 };
 let tempCanvasData;
+let isDraggingMouseCrop = false; // Flag for active crop dragging
 
 // Button references for crop
 const cropButton = document.getElementById("cropButton");
@@ -216,59 +217,84 @@ document.getElementById("canvas").addEventListener("click", handleClick);
 
 // --- CROP FUNCTIONALITY ---
 
-function drawCropRectangle() {
-  if (!cropRectangle.startX || !cropRectangle.startY || !cropRectangle.endX || !cropRectangle.endY) return;
-  ctx.strokeStyle = 'rgba(255, 0, 0, 0.7)';
+function drawCropRectangle() { // Now uses global cropRectangle directly
+  if (!ctx || !cropRectangle || typeof cropRectangle.startX === 'undefined') return; // Ensure canvas context and rect are available
+  
+  // Check if width or height is zero or negative to prevent errors
+  const rectWidth = cropRectangle.endX - cropRectangle.startX;
+  const rectHeight = cropRectangle.endY - cropRectangle.startY;
+  if (rectWidth <= 0 || rectHeight <= 0) {
+      // console.warn("Attempted to draw crop rectangle with zero or negative dimensions.");
+      return;
+  }
+
+  ctx.strokeStyle = 'rgba(220, 50, 50, 0.75)'; // A visible color
   ctx.lineWidth = 1;
+  ctx.setLineDash([4, 4]); // Dashed line
   ctx.strokeRect(
     cropRectangle.startX,
     cropRectangle.startY,
-    cropRectangle.endX - cropRectangle.startX,
-    cropRectangle.endY - cropRectangle.startY
+    rectWidth,
+    rectHeight
   );
+  ctx.setLineDash([]); // Reset line dash
 }
 
 function handleCropMouseDown(e) {
   if (!isCropping) return;
-  const rect = canvas.getBoundingClientRect();
-  cropRectangle.startX = e.clientX - rect.left;
-  cropRectangle.startY = e.clientY - rect.top;
-  cropRectangle.endX = e.clientX - rect.left; // Initialize end to start
-  cropRectangle.endY = e.clientY - rect.top;
+  isDraggingMouseCrop = true; // Start dragging
 
-  // Store canvas data before drawing the rectangle for the first time in this drag sequence
-  if (tempCanvasData) { // Ensure tempCanvasData from the beginning of crop mode is used
+  const rect = canvas.getBoundingClientRect();
+  // Use Math.round for potentially smoother/more predictable behavior
+  cropRectangle.startX = Math.round(e.clientX - rect.left);
+  cropRectangle.startY = Math.round(e.clientY - rect.top);
+  cropRectangle.endX = cropRectangle.startX; // Initialize end to start
+  cropRectangle.endY = cropRectangle.startY;
+
+  // The default rectangle is already drawn. tempCanvasData holds the image state *before* the default rect.
+  // When user clicks to start a new drag, we should clear the default/previous user-drawn rectangle.
+  if (tempCanvasData) { 
     ctx.putImageData(tempCanvasData, 0, 0);
   }
-
+  // No need to draw a zero-size rectangle here, mousemove will handle drawing.
 
   canvas.addEventListener('mousemove', handleCropMouseMove);
   canvas.addEventListener('mouseup', handleCropMouseUp);
+  // Consider adding listeners to document for dragging outside canvas, but keep to canvas for now.
 }
 
 function handleCropMouseMove(e) {
-  if (!isCropping) return; // Should be redundant if listeners are removed, but good practice
-  const rect = canvas.getBoundingClientRect();
-  cropRectangle.endX = e.clientX - rect.left;
-  cropRectangle.endY = e.clientY - rect.top;
+  if (!isCropping || !isDraggingMouseCrop) return; // Only act if cropping and dragging
 
-  // Restore original canvas state then draw rectangle
+  const rect = canvas.getBoundingClientRect();
+  const x = Math.round(e.clientX - rect.left);
+  const y = Math.round(e.clientY - rect.top);
+
+  // Restore the clean image segment (from before default or any rect was drawn)
   if (tempCanvasData) {
     ctx.putImageData(tempCanvasData, 0, 0);
   }
-  drawCropRectangle();
+
+  cropRectangle.endX = x;
+  cropRectangle.endY = y;
+
+  drawCropRectangle(); // Draws using the updated global cropRectangle
 }
 
 function handleCropMouseUp(e) {
-  if (!isCropping) return;
+  if (!isCropping) return; // Check isCropping first
+  isDraggingMouseCrop = false; // Stop dragging
+
   canvas.removeEventListener('mousemove', handleCropMouseMove);
   canvas.removeEventListener('mouseup', handleCropMouseUp);
-  // Final cropRectangle is now set. Confirmation will handle the actual crop.
-  // For now, just ensure the rectangle stays drawn until confirm/cancel
+
+  // Final draw of the rectangle on the clean canvas.
+  // This ensures the rectangle is correctly displayed if the mouseup occurs outside the canvas
+  // and also if the user just clicks without dragging (draws the initial point as a tiny rectangle if not handled by drawCropRectangle's size check).
   if (tempCanvasData) {
     ctx.putImageData(tempCanvasData, 0, 0);
   }
-  drawCropRectangle();
+  drawCropRectangle(); // Draw the final version of cropRectangle
 }
 
 cropButton.addEventListener('click', () => {
@@ -294,12 +320,24 @@ cropButton.addEventListener('click', () => {
   confirmCropButton.style.display = 'inline-block';
   cancelCropButton.style.display = 'inline-block';
 
-  // Store canvas data
+  // Store canvas data BEFORE drawing the default rectangle or any user interaction
   tempCanvasData = ctx.getImageData(0, 0, canvas.width, canvas.height);
 
-  // Add visual cue
-  canvas.style.border = '2px dashed red';
-  // Attach mousedown listener for cropping
+  // Define and draw default crop rectangle
+  let defaultWidth = Math.max(50, Math.min(canvas.width * 0.75, canvas.width - 20));
+  let defaultHeight = Math.max(50, Math.min(canvas.height * 0.75, canvas.height - 20));
+  
+  cropRectangle.startX = Math.round((canvas.width - defaultWidth) / 2);
+  cropRectangle.startY = Math.round((canvas.height - defaultHeight) / 2);
+  cropRectangle.endX = Math.round(cropRectangle.startX + defaultWidth);
+  cropRectangle.endY = Math.round(cropRectangle.startY + defaultHeight);
+
+  drawCropRectangle(); // Draw the initial default rectangle
+
+  // Add visual cue (canvas border)
+  canvas.style.border = '2px dashed red'; // This can stay if desired, or be removed if the rect is enough
+  
+  // Attach mousedown listener for user to potentially redraw/modify
   canvas.addEventListener('mousedown', handleCropMouseDown);
 });
 

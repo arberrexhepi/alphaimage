@@ -9,22 +9,30 @@
 </head>
 
 <body>
+    <div id="helpModal" class="modal" style="display:none;"> <!-- Modal container, initially hidden -->
+      <div class="modal-content">
+        <span id="closeHelpModal" class="close-button">&times;</span>
+        <!-- The existing #instructions div and its content go here -->
+        <div id="instructions" class="center-align">
+            <h5>Background Remover</h5>
+            <p>Remove the background from your images easily.</p>
+            <p>In desktop mode, Right click to temporarily lock Tool Panel, or catch it!</p>
+            <p>Upload an image and remove the background.</p>
+            <p>Click on the image to select the area you want to keep.</p>
+            <p>Use the sliders to adjust the tolerance and feathering.</p>
+            <p>Click "Save as" to download the image.</p>
+            <p>Click "Undo" to revert the last action.</p>
+            <p>Click "Redo" to redo the last undone action.</p>
+            <p>Click "Flood | Global" to switch between flood fill and global selection modes.</p>
+            <p>Click "Upload" to upload a new image.</p>
+        </div>
+      </div>
+    </div>
+
     <div class="container">
         <div class="row">
             <div class="col s12">
-                <div id="instructions" class="center-align">
-                    <h5>Background Remover</h5>
-                    <p>Remove the background from your images easily.</p>
-                    <p>In desktop mode, Right click to temporarily lock Tool Panel, or catch it!</p>
-                    <p>Upload an image and remove the background.</p>
-                    <p>Click on the image to select the area you want to keep.</p>
-                    <p>Use the sliders to adjust the tolerance and feathering.</p>
-                    <p>Click "Save as" to download the image.</p>
-                    <p>Click "Undo" to revert the last action.</p>
-                    <p>Click "Redo" to redo the last undone action.</p>
-                    <p>Click "Flood | Global" to switch between flood fill and global selection modes.</p>
-                    <p>Click "Upload" to upload a new image.</p>
-                </div>
+                <!-- The #instructions div is now inside the modal, so it's removed from here -->
                 <canvas id="canvas" width="500" height="500"></canvas>
             </div>
         </div>

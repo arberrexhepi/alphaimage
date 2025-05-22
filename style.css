@@ -172,7 +172,7 @@ body {
 
 /* Modal Styles for Help Instructions */
 .modal {
-    /* display: none;  Ensured by inline style on #helpModal in HTML for initial state */
+    display: none;  /* Hidden by default via CSS */
     position: fixed; /* Stay in place */
     z-index: 1001; /* Sit on top of other content, but below .tool-panel if it's higher */
     left: 0;

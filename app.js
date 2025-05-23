@@ -52,8 +52,12 @@ document.getElementById("floodToggle").addEventListener("change", function (e) {
   }
 });
 
-function addNewState(imageData) {
-  if (!imageDataToStore) return;
+function addNewState(imageDataToStore) { // Renamed parameter for clarity
+  // console.log('[addNewState] Called. Current stateIndex:', currentStateIndex, 'History length:', stateHistory.length, 'Canvas Dims:', canvas.width, 'x', canvas.height);
+  if (!imageDataToStore) {
+    // console.log('[addNewState] imageDataToStore is null or undefined. Aborting.');
+    return;
+  }
   let imageClone = ctx.createImageData(imageDataToStore.width, imageDataToStore.height);
   imageClone.data.set(imageDataToStore.data);
 
@@ -62,6 +66,11 @@ function addNewState(imageData) {
     width: canvas.width, // Capture canvas width at this state
     height: canvas.height // Capture canvas height at this state
   };
+  // console.log('[addNewState] Capturing state with dimensions:', newState.width, 'x', newState.height);
+  // if (newState.imageData && newState.imageData.data) {
+    // console.log('[addNewState] Sample new state imageData (first 4 values):', newState.imageData.data.slice(0,4));
+  // }
+
 
   // Trim forward history if we're not at the end
   stateHistory = stateHistory.slice(0, currentStateIndex + 1);
@@ -69,19 +78,19 @@ function addNewState(imageData) {
   // Add the new state
   currentStateIndex++;
   stateHistory.push(newState);
+  // console.log('[addNewState] New stateIndex:', currentStateIndex, 'New history length:', stateHistory.length);
 }
 
 function undo() {
+  // console.log('[undo] Called. Current stateIndex:', currentStateIndex, 'History length:', stateHistory.length);
   if (currentStateIndex > 0) { // Was previously in history, move to prior history state
+    // console.log('[undo] About to decrement stateIndex from:', currentStateIndex);
     currentStateIndex--;
     const stateToRestore = stateHistory[currentStateIndex];
-
-    // Add temporary debug logs for UNDO (history state)
-    console.log('Restoring state in UNDO (from history):');
-    console.log('State dimensions:', stateToRestore.width, 'x', stateToRestore.height);
-    if (stateToRestore.imageData && stateToRestore.imageData.data.length > 4) {
-        console.log('Sample imageData (first 4 values):', stateToRestore.imageData.data.slice(0, 4));
-    }
+    // console.log('[undo] Restoring from history (index ' + currentStateIndex + '). Dimensions:', stateToRestore.width, 'x', stateToRestore.height);
+    // if (stateToRestore.imageData && stateToRestore.imageData.data) {
+        // console.log('[undo] Sample stateToRestore.imageData (first 4 values):', stateToRestore.imageData.data.slice(0, 4));
+    // }
 
     canvas.width = stateToRestore.width;
     canvas.height = stateToRestore.height;
@@ -90,16 +99,13 @@ function undo() {
     resizeWidthInput.value = stateToRestore.width;
     resizeHeightInput.value = stateToRestore.height;
   } else if (currentStateIndex === 0) { // Was at the first history state, move to original
+    // console.log('[undo] About to decrement stateIndex from:', currentStateIndex);
     currentStateIndex = -1;
     if (originalImageData && typeof originalImageData.width !== 'undefined') { // Check if originalImageData and its properties are set
-        const stateToRestore = originalImageData; // Use originalImageData as the state object for logging
-
-        // Add temporary debug logs for UNDO (original state)
-        console.log('Restoring state in UNDO (to original):');
-        console.log('State dimensions:', stateToRestore.width, 'x', stateToRestore.height);
-        if (stateToRestore.imageData && stateToRestore.imageData.data.length > 4) {
-            console.log('Sample imageData (first 4 values):', stateToRestore.imageData.data.slice(0, 4));
-        }
+        // console.log('[undo] Restoring originalImageData. Dimensions:', originalImageData.width, 'x', originalImageData.height);
+        // if (originalImageData.imageData && originalImageData.imageData.data) {
+            // console.log('[undo] Sample originalImageData.imageData (first 4 values):', originalImageData.imageData.data.slice(0, 4));
+        // }
         
         canvas.width = originalImageData.width;
         canvas.height = originalImageData.height;
@@ -112,23 +118,25 @@ function undo() {
         ctx.putImageData(currentImageData, 0, 0);
         resizeWidthInput.value = originalImageData.width;
         resizeHeightInput.value = originalImageData.height;
+    // } else {
+        // console.log('[undo] No originalImageData to restore or it is invalid.');
     }
-    // else: No original image loaded, or it's been cleared. Nothing to undo to.
+  // } else {
+    // console.log('[undo] No action taken. stateIndex already at -1 or history empty.');
   }
-  // If currentStateIndex is already -1, do nothing (no more undos)
+  // console.log('[undo] Finished. Current stateIndex:', currentStateIndex);
 }
 
 function redo() {
+  // console.log('[redo] Called. Current stateIndex:', currentStateIndex, 'History length:', stateHistory.length);
   if (currentStateIndex < stateHistory.length - 1) {
+    // console.log('[redo] About to increment stateIndex from:', currentStateIndex);
     currentStateIndex++;
     const stateToRestore = stateHistory[currentStateIndex];
-
-    // Add temporary debug logs for REDO
-    console.log('Restoring state in REDO:');
-    console.log('State dimensions:', stateToRestore.width, 'x', stateToRestore.height);
-    if (stateToRestore.imageData && stateToRestore.imageData.data.length > 4) {
-        console.log('Sample imageData (first 4 values):', stateToRestore.imageData.data.slice(0, 4));
-    }
+    // console.log('[redo] Restoring from history (index ' + currentStateIndex + '). Dimensions:', stateToRestore.width, 'x', stateToRestore.height);
+    // if (stateToRestore.imageData && stateToRestore.imageData.data) {
+        // console.log('[redo] Sample stateToRestore.imageData (first 4 values):', stateToRestore.imageData.data.slice(0, 4));
+    // }
 
     canvas.width = stateToRestore.width;
     canvas.height = stateToRestore.height;
@@ -136,8 +144,10 @@ function redo() {
     ctx.putImageData(currentImageData, 0, 0);
     resizeWidthInput.value = stateToRestore.width;
     resizeHeightInput.value = stateToRestore.height;
+  // } else {
+      // console.log('[redo] No action taken. Already at newest state or history empty.');
   }
-  // If currentStateIndex is already at the end of history, or if history is empty and index is -1
+  // console.log('[redo] Finished. Current stateIndex:', currentStateIndex);
 }
 
 document.getElementById("imageUpload").addEventListener("change", function (e) {
@@ -464,12 +474,12 @@ confirmCropButton.addEventListener('click', () => {
     currentImageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
     // originalImageData = currentImageData; // REMOVED: originalImageData should be immutable
     
-    // Add temporary debug logs
-    console.log('Saving crop state:');
-    console.log('Canvas dimensions:', canvas.width, 'x', canvas.height);
-    if (currentImageData && currentImageData.data.length > 4) {
-        console.log('Sample imageData (first 4 values):', currentImageData.data.slice(0, 4));
-    }
+    // Remove temporary debug logs
+    // console.log('Saving crop state:');
+    // console.log('Canvas dimensions:', canvas.width, 'x', canvas.height);
+    // if (currentImageData && currentImageData.data.length > 4) {
+        // console.log('Sample imageData (first 4 values):', currentImageData.data.slice(0, 4));
+    // }
 
     // Add new state to history
     addNewState(currentImageData);
@@ -755,8 +765,8 @@ function updateCanvas(imageData, tolerance, globalOff, feather) {
   });
 }
 
-document.getElementById("undoButton").addEventListener("click", undo);
-document.getElementById("redoButton").addEventListener("click", redo);
+document.getElementById("undoButton").addEventListener("click", undo); // Temporary click logs were removed in SU14
+document.getElementById("redoButton").addEventListener("click", redo); // Temporary click logs were removed in SU14
 
 //save
 document.getElementById("saveButton").addEventListener("click", function (e) {

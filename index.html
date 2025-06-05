@@ -9,22 +9,30 @@
 </head>
 
 <body>
+    <div id="helpModal" class="modal" style="display:none;"> <!-- Modal container, initially hidden -->
+      <div class="modal-content">
+        <span id="closeHelpModal" class="close-button">&times;</span>
+        <!-- The existing #instructions div and its content go here -->
+        <div id="instructions" class="center-align">
+            <h5>Background Remover</h5>
+            <p>Remove the background from your images easily.</p>
+            <p>In desktop mode, Right click to temporarily lock Tool Panel, or catch it!</p>
+            <p>Upload an image and remove the background.</p>
+            <p>Click on the image to select the area you want to keep.</p>
+            <p>Use the sliders to adjust the tolerance and feathering.</p>
+            <p>Click "Save as" to download the image.</p>
+            <p>Click "Undo" to revert the last action.</p>
+            <p>Click "Redo" to redo the last undone action.</p>
+            <p>Click "Flood | Global" to switch between flood fill and global selection modes.</p>
+            <p>Click "Upload" to upload a new image.</p>
+        </div>
+      </div>
+    </div>
+
     <div class="container">
         <div class="row">
             <div class="col s12">
-                <div id="instructions" class="center-align">
-                    <h5>Background Remover</h5>
-                    <p>Remove the background from your images easily.</p>
-                    <p>In desktop mode, Right click to temporarily lock Tool Panel, or catch it!</p>
-                    <p>Upload an image and remove the background.</p>
-                    <p>Click on the image to select the area you want to keep.</p>
-                    <p>Use the sliders to adjust the tolerance and feathering.</p>
-                    <p>Click "Save as" to download the image.</p>
-                    <p>Click "Undo" to revert the last action.</p>
-                    <p>Click "Redo" to redo the last undone action.</p>
-                    <p>Click "Flood | Global" to switch between flood fill and global selection modes.</p>
-                    <p>Click "Upload" to upload a new image.</p>
-                </div>
+                <!-- The #instructions div is now inside the modal, so it's removed from here -->
                 <canvas id="canvas" width="500" height="500"></canvas>
             </div>
         </div>
@@ -33,6 +41,10 @@
     <div id="toolPanel" class="tool-panel">
         <button id="undoButton" class="btn-small">Undo</button>
         <button id="redoButton" class="btn-small">Redo</button>
+        <button id="helpButton" class="btn-small">Help</button> 
+        <button id="cropButton" class="btn-small">Crop</button>
+        <button id="confirmCropButton" class="btn-small" style="display:none;">Confirm Crop</button>
+        <button id="cancelCropButton" class="btn-small" style="display:none;">Cancel Crop</button>
         <div class="color-mode-switch">
             <label>
                 <input type="checkbox" id="floodToggle" checked>
@@ -46,6 +58,22 @@
         <input type="range" id="featherSlider" min="0" max="100" step="0.5" value="1">
 
         <button id="saveButton" class="btn-small">Save as</button>
+
+        <div class="tool-section">
+            <h6>Resize</h6>
+            <label for="resizeWidthInput">New Width:</label>
+            <input type="number" id="resizeWidthInput" class="input-field">
+            <label for="resizeHeightInput">New Height:</label>
+            <input type="number" id="resizeHeightInput" class="input-field">
+            <p class="checkbox-container">
+                <label>
+                    <input type="checkbox" id="maintainAspectRatioCheckbox" checked />
+                    <span>Maintain Aspect Ratio</span>
+                </label>
+            </p>
+            <button id="applyResizeButton" class="btn-small">Apply Resize</button>
+        </div>
+
         <div class="file-field input-field">
             <div class="btn-small">
                 <span>Upload</span>

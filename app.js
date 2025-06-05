@@ -1,13 +1,47 @@
 // Assuming ctx is the 2D context of your canvas element
 const canvas = document.getElementById("canvas");
 const ctx = canvas.getContext("2d");
-let originalImageData;
+let originalImageData = null; // Initialize as null
+let fullResolutionImage = null; // To store the original uploaded image object
 let currentImageData;
 let clickColor;
 let currentState = -1;
 let stateHistory = [];
 let currentStateIndex = -1;
 let globalOff = true;
+
+// Crop functionality variables
+let isCropping = false;
+let cropRectangle = { startX: 0, startY: 0, endX: 0, endY: 0 };
+let tempCanvasData;
+let isDraggingMouseCrop = false; // Flag for active crop dragging
+
+// Button references for crop
+const cropButton = document.getElementById("cropButton");
+const confirmCropButton = document.getElementById("confirmCropButton");
+const cancelCropButton = document.getElementById("cancelCropButton");
+
+// References to other UI elements to disable/enable during cropping
+const toleranceSlider = document.getElementById("toleranceSlider");
+const featherSlider = document.getElementById("featherSlider");
+const floodToggle = document.getElementById("floodToggle");
+const saveButton = document.getElementById("saveButton");
+const imageUpload = document.getElementById("imageUpload");
+// Assuming undoButton and redoButton are already referenced or can be easily selected
+const undoButton = document.getElementById("undoButton");
+const redoButton = document.getElementById("redoButton");
+
+// Resize functionality UI elements
+const resizeWidthInput = document.getElementById("resizeWidthInput");
+const resizeHeightInput = document.getElementById("resizeHeightInput");
+const maintainAspectRatioCheckbox = document.getElementById("maintainAspectRatioCheckbox");
+const applyResizeButton = document.getElementById("applyResizeButton");
+
+// Help Modal Elements
+const helpButton = document.getElementById('helpButton');
+const helpModal = document.getElementById('helpModal');
+const closeHelpModal = document.getElementById('closeHelpModal');
+
 
 document.getElementById("floodToggle").addEventListener("change", function (e) {
   globalOff = e.target.checked; // checked = use flood fill; unchecked = global removal
@@ -18,57 +52,102 @@ document.getElementById("floodToggle").addEventListener("change", function (e) {
   }
 });
 
-function addNewState(imageData) {
-  if (!imageData) return;
-  let clone = ctx.createImageData(imageData.width, imageData.height);
-  clone.data.set(imageData.data);
+function addNewState(imageDataToStore) { // Renamed parameter for clarity
+  // console.log('[addNewState] Called. Current stateIndex:', currentStateIndex, 'History length:', stateHistory.length, 'Canvas Dims:', canvas.width, 'x', canvas.height);
+  if (!imageDataToStore) {
+    // console.log('[addNewState] imageDataToStore is null or undefined. Aborting.');
+    return;
+  }
+  let imageClone = ctx.createImageData(imageDataToStore.width, imageDataToStore.height);
+  imageClone.data.set(imageDataToStore.data);
+
+  const newState = {
+    imageData: imageClone,
+    width: canvas.width, // Capture canvas width at this state
+    height: canvas.height // Capture canvas height at this state
+  };
+  // console.log('[addNewState] Capturing state with dimensions:', newState.width, 'x', newState.height);
+  // if (newState.imageData && newState.imageData.data) {
+    // console.log('[addNewState] Sample new state imageData (first 4 values):', newState.imageData.data.slice(0,4));
+  // }
+
 
   // Trim forward history if we're not at the end
   stateHistory = stateHistory.slice(0, currentStateIndex + 1);
 
   // Add the new state
   currentStateIndex++;
-  stateHistory.push(clone);
+  stateHistory.push(newState);
+  // console.log('[addNewState] New stateIndex:', currentStateIndex, 'New history length:', stateHistory.length);
 }
 
 function undo() {
-  if (currentStateIndex > 0) {
+  // console.log('[undo] Called. Current stateIndex:', currentStateIndex, 'History length:', stateHistory.length);
+  if (currentStateIndex > 0) { // Was previously in history, move to prior history state
+    // console.log('[undo] About to decrement stateIndex from:', currentStateIndex);
     currentStateIndex--;
-    const clone = ctx.createImageData(
-      stateHistory[currentStateIndex].width,
-      stateHistory[currentStateIndex].height
-    );
-    clone.data.set(stateHistory[currentStateIndex].data);
-    currentImageData = clone;
+    const stateToRestore = stateHistory[currentStateIndex];
+    // console.log('[undo] Restoring from history (index ' + currentStateIndex + '). Dimensions:', stateToRestore.width, 'x', stateToRestore.height);
+    // if (stateToRestore.imageData && stateToRestore.imageData.data) {
+        // console.log('[undo] Sample stateToRestore.imageData (first 4 values):', stateToRestore.imageData.data.slice(0, 4));
+    // }
+
+    canvas.width = stateToRestore.width;
+    canvas.height = stateToRestore.height;
+    currentImageData = stateToRestore.imageData; // Use direct reference
     ctx.putImageData(currentImageData, 0, 0);
-  } else if (currentStateIndex === 0) {
+    resizeWidthInput.value = stateToRestore.width;
+    resizeHeightInput.value = stateToRestore.height;
+  } else if (currentStateIndex === 0) { // Was at the first history state, move to original
+    // console.log('[undo] About to decrement stateIndex from:', currentStateIndex);
     currentStateIndex = -1;
-    const clone = ctx.createImageData(
-      originalImageData.width,
-      originalImageData.height
-    );
-    clone.data.set(originalImageData.data);
-    currentImageData = clone;
-    ctx.putImageData(currentImageData, 0, 0);
+    if (originalImageData && typeof originalImageData.width !== 'undefined') { // Check if originalImageData and its properties are set
+        // console.log('[undo] Restoring originalImageData. Dimensions:', originalImageData.width, 'x', originalImageData.height);
+        // if (originalImageData.imageData && originalImageData.imageData.data) {
+            // console.log('[undo] Sample originalImageData.imageData (first 4 values):', originalImageData.imageData.data.slice(0, 4));
+        // }
+        
+        canvas.width = originalImageData.width;
+        canvas.height = originalImageData.height;
+        
+        // Create a fresh copy for currentImageData from originalImageData.imageData
+        const od = ctx.createImageData(originalImageData.imageData.width, originalImageData.imageData.height);
+        od.data.set(originalImageData.imageData.data);
+        currentImageData = od; // Assign the new ImageData object
+        
+        ctx.putImageData(currentImageData, 0, 0);
+        resizeWidthInput.value = originalImageData.width;
+        resizeHeightInput.value = originalImageData.height;
+    // } else {
+        // console.log('[undo] No originalImageData to restore or it is invalid.');
+    }
+  // } else {
+    // console.log('[undo] No action taken. stateIndex already at -1 or history empty.');
   }
+  // console.log('[undo] Finished. Current stateIndex:', currentStateIndex);
 }
 
 function redo() {
-  if (currentStateIndex === -1 && stateHistory.length > 0) {
-    currentStateIndex = 0;
-  } else if (currentStateIndex < stateHistory.length - 1) {
+  // console.log('[redo] Called. Current stateIndex:', currentStateIndex, 'History length:', stateHistory.length);
+  if (currentStateIndex < stateHistory.length - 1) {
+    // console.log('[redo] About to increment stateIndex from:', currentStateIndex);
     currentStateIndex++;
-  } else {
-    return;
-  }
+    const stateToRestore = stateHistory[currentStateIndex];
+    // console.log('[redo] Restoring from history (index ' + currentStateIndex + '). Dimensions:', stateToRestore.width, 'x', stateToRestore.height);
+    // if (stateToRestore.imageData && stateToRestore.imageData.data) {
+        // console.log('[redo] Sample stateToRestore.imageData (first 4 values):', stateToRestore.imageData.data.slice(0, 4));
+    // }
 
-  const clone = ctx.createImageData(
-    stateHistory[currentStateIndex].width,
-    stateHistory[currentStateIndex].height
-  );
-  clone.data.set(stateHistory[currentStateIndex].data);
-  currentImageData = clone;
-  ctx.putImageData(currentImageData, 0, 0);
+    canvas.width = stateToRestore.width;
+    canvas.height = stateToRestore.height;
+    currentImageData = stateToRestore.imageData; // Use direct reference
+    ctx.putImageData(currentImageData, 0, 0);
+    resizeWidthInput.value = stateToRestore.width;
+    resizeHeightInput.value = stateToRestore.height;
+  // } else {
+      // console.log('[redo] No action taken. Already at newest state or history empty.');
+  }
+  // console.log('[redo] Finished. Current stateIndex:', currentStateIndex);
 }
 
 document.getElementById("imageUpload").addEventListener("change", function (e) {
@@ -79,20 +158,77 @@ document.getElementById("imageUpload").addEventListener("change", function (e) {
       const img = new Image();
 
       img.onload = function () {
-        if (currentImageData !== undefined) {
-          currentImadaData = "";
-          originalImageData = "";
-          canvas.width = "";
-          canvas.height = "";
+        fullResolutionImage = this; // Store the full-resolution image object
+
+        // Reset cropping state if a new image is loaded
+        if (isCropping) {
+          cancelCropButton.click(); // Simulate cancel to reset UI
         }
-        canvas.width = img.width;
-        canvas.height = img.height;
-        ctx.drawImage(img, 0, 0, img.width, img.height);
-        originalImageData = ctx.getImageData(0, 0, img.width, img.height);
-        currentImageData = originalImageData;
-        // handleToleranceChange();
-        document.getElementById("instructions").style.display = "none";
-        addNewState(currentImageData);
+
+        // Calculate Max Canvas Dimensions
+        const viewportWidth = window.innerWidth;
+        const viewportHeight = window.innerHeight;
+        const maxCanvasWidth = viewportWidth * 0.9;
+        const maxCanvasHeight = viewportHeight * 0.9;
+
+        // Calculate Scaled Image Dimensions
+        let scaledWidth = fullResolutionImage.width;
+        let scaledHeight = fullResolutionImage.height;
+        const aspectRatio = fullResolutionImage.width / fullResolutionImage.height;
+
+        if (scaledWidth > maxCanvasWidth) {
+          scaledWidth = maxCanvasWidth;
+          scaledHeight = scaledWidth / aspectRatio;
+        }
+        if (scaledHeight > maxCanvasHeight) {
+          scaledHeight = maxCanvasHeight;
+          scaledWidth = scaledHeight * aspectRatio;
+        }
+
+        scaledWidth = Math.round(scaledWidth);
+        scaledHeight = Math.round(scaledHeight);
+        if (scaledWidth <= 0) scaledWidth = 1;
+        if (scaledHeight <= 0) scaledHeight = 1;
+        
+        // Update Canvas and Draw Scaled Image
+        if (currentImageData !== undefined) { // Existing reset logic for variables
+          currentImadaData = ""; // Note: currentImadaData looks like a typo, should be currentImageData
+          // originalImageData = null; // Reset originalImageData structure
+          // stateHistory = []; // Reset history
+          // currentStateIndex = -1;
+        }
+        // Clear previous image data variables explicitly if needed, or rely on overwrite
+        currentImageData = undefined; 
+        originalImageData = null; 
+        stateHistory = [];
+        currentStateIndex = -1;
+
+
+        canvas.width = scaledWidth;
+        canvas.height = scaledHeight;
+        ctx.drawImage(fullResolutionImage, 0, 0, canvas.width, canvas.height); // Draw scaled
+
+        // Update originalImageData (for display state and aspect ratio of displayed image)
+        const initialDisplayImageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+        originalImageData = { 
+            imageData: initialDisplayImageData, 
+            width: canvas.width, // Use canvas.width (scaled width)
+            height: canvas.height // Use canvas.height (scaled height)
+        };
+
+        // Update currentImageData
+        currentImageData = ctx.createImageData(originalImageData.imageData.width, originalImageData.imageData.height);
+        currentImageData.data.set(originalImageData.imageData.data);
+        
+        // Add the initial state to history
+        addNewState(currentImageData); 
+
+        // Update Resize Input Fields
+        resizeWidthInput.value = canvas.width;
+        resizeHeightInput.value = canvas.height;
+        
+        // Hide Instructions Div - This is now handled by the modal being hidden by default
+        // document.getElementById("instructions").style.display = "none"; 
       };
 
       img.onerror = function () {
@@ -116,6 +252,8 @@ let lastClickX = 0;
 let lastClickY = 0;
 
 function handleClick(e) {
+  if (isCropping) return; // Don't process color selection clicks if cropping
+
   let rect = canvas.getBoundingClientRect();
   let x = e.clientX - rect.left;
   let y = e.clientY - rect.top;
@@ -148,6 +286,330 @@ function runRemoval(imageData, tolerance, globalOff) {
 }
 
 document.getElementById("canvas").addEventListener("click", handleClick);
+
+
+// --- CROP FUNCTIONALITY ---
+
+function drawCropRectangle() { // Now uses global cropRectangle directly
+  if (!ctx || !cropRectangle || typeof cropRectangle.startX === 'undefined') return; // Ensure canvas context and rect are available
+  
+  // Check if width or height is zero or negative to prevent errors
+  const rectWidth = cropRectangle.endX - cropRectangle.startX;
+  const rectHeight = cropRectangle.endY - cropRectangle.startY;
+  if (rectWidth <= 0 || rectHeight <= 0) {
+      // console.warn("Attempted to draw crop rectangle with zero or negative dimensions.");
+      return;
+  }
+
+  ctx.strokeStyle = 'rgba(220, 50, 50, 0.75)'; // A visible color
+  ctx.lineWidth = 1;
+  ctx.setLineDash([4, 4]); // Dashed line
+  ctx.strokeRect(
+    cropRectangle.startX,
+    cropRectangle.startY,
+    rectWidth,
+    rectHeight
+  );
+  ctx.setLineDash([]); // Reset line dash
+}
+
+function handleCropMouseDown(e) {
+  if (!isCropping) return;
+  isDraggingMouseCrop = true; // Start dragging
+
+  const rect = canvas.getBoundingClientRect();
+  // Use Math.round for potentially smoother/more predictable behavior
+  cropRectangle.startX = Math.round(e.clientX - rect.left);
+  cropRectangle.startY = Math.round(e.clientY - rect.top);
+  cropRectangle.endX = cropRectangle.startX; // Initialize end to start
+  cropRectangle.endY = cropRectangle.startY;
+
+  // The default rectangle is already drawn. tempCanvasData holds the image state *before* the default rect.
+  // When user clicks to start a new drag, we should clear the default/previous user-drawn rectangle.
+  if (tempCanvasData) { 
+    ctx.putImageData(tempCanvasData, 0, 0);
+  }
+  // No need to draw a zero-size rectangle here, mousemove will handle drawing.
+
+  canvas.addEventListener('mousemove', handleCropMouseMove);
+  canvas.addEventListener('mouseup', handleCropMouseUp);
+  // Consider adding listeners to document for dragging outside canvas, but keep to canvas for now.
+}
+
+function handleCropMouseMove(e) {
+  if (!isCropping || !isDraggingMouseCrop) return; // Only act if cropping and dragging
+
+  const rect = canvas.getBoundingClientRect();
+  const x = Math.round(e.clientX - rect.left);
+  const y = Math.round(e.clientY - rect.top);
+
+  // Restore the clean image segment (from before default or any rect was drawn)
+  if (tempCanvasData) {
+    ctx.putImageData(tempCanvasData, 0, 0);
+  }
+
+  cropRectangle.endX = x;
+  cropRectangle.endY = y;
+
+  drawCropRectangle(); // Draws using the updated global cropRectangle
+}
+
+function handleCropMouseUp(e) {
+  if (!isCropping) return; // Check isCropping first
+  isDraggingMouseCrop = false; // Stop dragging
+
+  canvas.removeEventListener('mousemove', handleCropMouseMove);
+  canvas.removeEventListener('mouseup', handleCropMouseUp);
+
+  // Final draw of the rectangle on the clean canvas.
+  // This ensures the rectangle is correctly displayed if the mouseup occurs outside the canvas
+  // and also if the user just clicks without dragging (draws the initial point as a tiny rectangle if not handled by drawCropRectangle's size check).
+  if (tempCanvasData) {
+    ctx.putImageData(tempCanvasData, 0, 0);
+  }
+  drawCropRectangle(); // Draw the final version of cropRectangle
+}
+
+cropButton.addEventListener('click', () => {
+  if (!originalImageData) {
+    alert("Please upload an image first.");
+    return;
+  }
+  isCropping = true;
+
+  // Disable other controls
+  toleranceSlider.disabled = true;
+  featherSlider.disabled = true;
+  floodToggle.disabled = true;
+  saveButton.disabled = true;
+  imageUpload.disabled = true;
+  undoButton.disabled = true;
+  redoButton.disabled = true;
+  document.getElementById("canvas").removeEventListener("click", handleClick);
+
+
+  // Show/hide buttons
+  cropButton.style.display = 'none';
+  confirmCropButton.style.display = 'inline-block';
+  cancelCropButton.style.display = 'inline-block';
+
+  // Store canvas data BEFORE drawing the default rectangle or any user interaction
+  tempCanvasData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+
+  // Define and draw default crop rectangle
+  let defaultWidth = Math.max(50, Math.min(canvas.width * 0.75, canvas.width - 20));
+  let defaultHeight = Math.max(50, Math.min(canvas.height * 0.75, canvas.height - 20));
+  
+  cropRectangle.startX = Math.round((canvas.width - defaultWidth) / 2);
+  cropRectangle.startY = Math.round((canvas.height - defaultHeight) / 2);
+  cropRectangle.endX = Math.round(cropRectangle.startX + defaultWidth);
+  cropRectangle.endY = Math.round(cropRectangle.startY + defaultHeight);
+
+  drawCropRectangle(); // Draw the initial default rectangle
+
+  // Add visual cue (canvas border)
+  canvas.style.border = '2px dashed red'; // This can stay if desired, or be removed if the rect is enough
+  
+  // Attach mousedown listener for user to potentially redraw/modify
+  canvas.addEventListener('mousedown', handleCropMouseDown);
+});
+
+cancelCropButton.addEventListener('click', () => {
+  isCropping = false;
+
+  // Re-enable other controls
+  toleranceSlider.disabled = false;
+  featherSlider.disabled = false;
+  floodToggle.disabled = false;
+  saveButton.disabled = false;
+  imageUpload.disabled = false;
+  undoButton.disabled = false;
+  redoButton.disabled = false;
+  document.getElementById("canvas").addEventListener("click", handleClick);
+
+
+  // Show/hide buttons
+  cropButton.style.display = 'inline-block';
+  confirmCropButton.style.display = 'none';
+  cancelCropButton.style.display = 'none';
+
+  // Restore canvas content
+  if (tempCanvasData) {
+    ctx.putImageData(tempCanvasData, 0, 0);
+    tempCanvasData = null; // Clear it
+  }
+  cropRectangle = { startX: 0, startY: 0, endX: 0, endY: 0 }; // Reset crop rectangle
+
+  // Remove visual cue
+  canvas.style.border = '1px solid #ccc'; // Or original border
+
+  // Remove crop-specific listeners
+  canvas.removeEventListener('mousedown', handleCropMouseDown);
+  canvas.removeEventListener('mousemove', handleCropMouseMove); // Ensure these are also removed
+  canvas.removeEventListener('mouseup', handleCropMouseUp);
+});
+
+confirmCropButton.addEventListener('click', () => {
+  if (!isCropping || !originalImageData) return;
+
+  // Ensure valid crop rectangle (width and height > 0)
+  const cropWidth = Math.abs(cropRectangle.endX - cropRectangle.startX);
+  const cropHeight = Math.abs(cropRectangle.endY - cropRectangle.startY);
+
+  if (cropWidth > 0 && cropHeight > 0) {
+    // Determine top-left corner of the crop rectangle
+    const sx = Math.min(cropRectangle.startX, cropRectangle.endX);
+    const sy = Math.min(cropRectangle.startY, cropRectangle.endY);
+
+    // Get the cropped image data from the original image (or tempCanvasData if it represents the state before selection box)
+    // It's better to use tempCanvasData as it's the state before any selection rectangle was drawn.
+    const croppedImageData = ctx.getImageData(sx, sy, cropWidth, cropHeight);
+
+    // Clear canvas and resize it to the new dimensions
+    canvas.width = cropWidth;
+    canvas.height = cropHeight;
+    ctx.putImageData(croppedImageData, 0, 0);
+
+    // Update currentImageData to reflect the crop
+    currentImageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+    // originalImageData = currentImageData; // REMOVED: originalImageData should be immutable
+    
+    // Remove temporary debug logs
+    // console.log('Saving crop state:');
+    // console.log('Canvas dimensions:', canvas.width, 'x', canvas.height);
+    // if (currentImageData && currentImageData.data.length > 4) {
+        // console.log('Sample imageData (first 4 values):', currentImageData.data.slice(0, 4));
+    // }
+
+    // Add new state to history
+    addNewState(currentImageData);
+
+  } else {
+    // If crop dimensions are invalid, just restore the canvas without cropping
+    if (tempCanvasData) {
+      ctx.putImageData(tempCanvasData, 0, 0);
+    }
+  }
+
+  // Reset cropping state (similar to cancel)
+  isCropping = false;
+  toleranceSlider.disabled = false;
+  featherSlider.disabled = false;
+  floodToggle.disabled = false;
+  saveButton.disabled = false;
+  imageUpload.disabled = false;
+  undoButton.disabled = false;
+  redoButton.disabled = false;
+  document.getElementById("canvas").addEventListener("click", handleClick);
+
+  cropButton.style.display = 'inline-block';
+  confirmCropButton.style.display = 'none';
+  cancelCropButton.style.display = 'none';
+
+  if (tempCanvasData) {
+     // No need to restore tempCanvasData here as we've committed the crop
+    tempCanvasData = null;
+  }
+  cropRectangle = { startX: 0, startY: 0, endX: 0, endY: 0 };
+  canvas.style.border = '1px solid #ccc'; // Or original border
+
+  canvas.removeEventListener('mousedown', handleCropMouseDown);
+  canvas.removeEventListener('mousemove', handleCropMouseMove);
+  canvas.removeEventListener('mouseup', handleCropMouseUp);
+});
+
+
+// --- RESIZE FUNCTIONALITY ---
+
+// Event listener for width input
+resizeWidthInput.addEventListener('input', () => {
+  if (!originalImageData || typeof originalImageData.width === 'undefined' || typeof originalImageData.height === 'undefined') return;
+  if (maintainAspectRatioCheckbox.checked) {
+    const aspectRatio = originalImageData.height / originalImageData.width;
+    const newWidth = parseInt(resizeWidthInput.value);
+    if (!isNaN(newWidth) && newWidth > 0) {
+      resizeHeightInput.value = Math.round(newWidth * aspectRatio);
+    } else if (resizeWidthInput.value === "") { // Handle empty input
+        resizeHeightInput.value = "";
+    }
+  }
+});
+
+// Event listener for height input
+resizeHeightInput.addEventListener('input', () => {
+  if (!originalImageData || typeof originalImageData.width === 'undefined' || typeof originalImageData.height === 'undefined') return;
+  if (maintainAspectRatioCheckbox.checked) {
+    const aspectRatio = originalImageData.width / originalImageData.height;
+    const newHeight = parseInt(resizeHeightInput.value);
+    if (!isNaN(newHeight) && newHeight > 0) {
+      resizeWidthInput.value = Math.round(newHeight * aspectRatio);
+    } else if (resizeHeightInput.value === "") { // Handle empty input
+        resizeWidthInput.value = "";
+    }
+  }
+});
+
+// Event listener for aspect ratio checkbox
+maintainAspectRatioCheckbox.addEventListener('change', () => {
+  if (!originalImageData || typeof originalImageData.width === 'undefined' || typeof originalImageData.height === 'undefined' || !resizeWidthInput.value) return;
+  if (maintainAspectRatioCheckbox.checked) {
+    // When checked, adjust height based on current width and original aspect ratio
+    const aspectRatio = originalImageData.height / originalImageData.width;
+    const currentWidth = parseInt(resizeWidthInput.value);
+    if (!isNaN(currentWidth) && currentWidth > 0) {
+      resizeHeightInput.value = Math.round(currentWidth * aspectRatio);
+    }
+  }
+  // If unchecked, no immediate action is needed, user can set dimensions freely.
+});
+
+applyResizeButton.addEventListener('click', () => {
+  if (!currentImageData) { 
+    alert("Please upload an image first.");
+    return;
+  }
+
+  const newWidth = parseInt(resizeWidthInput.value);
+  const newHeight = parseInt(resizeHeightInput.value);
+
+  if (!newWidth || !newHeight || newWidth <= 0 || newHeight <= 0) {
+    alert("Dimensions must be positive numbers.");
+    return;
+  }
+
+  // Create a temporary canvas to draw the scaled image
+  const tempCanvas = document.createElement('canvas');
+  tempCanvas.width = newWidth;
+  tempCanvas.height = newHeight;
+  const tempCtx = tempCanvas.getContext('2d');
+
+  // Create a source canvas to hold currentImageData
+  const sourceCanvas = document.createElement('canvas');
+  sourceCanvas.width = currentImageData.width;
+  sourceCanvas.height = currentImageData.height;
+  sourceCanvas.getContext('2d').putImageData(currentImageData, 0, 0);
+
+  // Draw the source canvas to the temporary canvas, scaled
+  tempCtx.drawImage(sourceCanvas, 0, 0, currentImageData.width, currentImageData.height, 0, 0, newWidth, newHeight);
+
+  // Update the main canvas
+  canvas.width = newWidth;
+  canvas.height = newHeight;
+  ctx.drawImage(tempCanvas, 0, 0);
+
+  // Update currentImageData and history
+  currentImageData = ctx.getImageData(0, 0, newWidth, newHeight);
+  addNewState(currentImageData);
+
+  // originalImageData = currentImageData; // REMOVED: originalImageData should be immutable
+
+  // Update input fields to reflect the applied dimensions
+  resizeWidthInput.value = newWidth;
+  resizeHeightInput.value = newHeight;
+
+  // No specific UI changes like disabling buttons are needed as per current design.
+});
+
 
 //end remove with feather
 
@@ -303,8 +765,8 @@ function updateCanvas(imageData, tolerance, globalOff, feather) {
   });
 }
 
-document.getElementById("undoButton").addEventListener("click", undo);
-document.getElementById("redoButton").addEventListener("click", redo);
+document.getElementById("undoButton").addEventListener("click", undo); // Temporary click logs were removed in SU14
+document.getElementById("redoButton").addEventListener("click", redo); // Temporary click logs were removed in SU14
 
 //save
 document.getElementById("saveButton").addEventListener("click", function (e) {
@@ -402,7 +864,25 @@ document.addEventListener("mouseup", function () {
 });
 
 // Implement the functionality for undo and redo buttons
-document.getElementById("undoButton").addEventListener("click", undo);
-document.getElementById("redoButton").addEventListener("click", redo);
+// undoButton and redoButton event listeners are already added above.
 
 // Add your undo and redo function definitions here
+// These are already defined earlier in the script.
+
+
+// --- Help Modal Event Listeners ---
+if (helpButton && helpModal && closeHelpModal) {
+    helpButton.addEventListener('click', function() {
+        helpModal.style.display = 'block';
+    });
+
+    closeHelpModal.addEventListener('click', function() {
+        helpModal.style.display = 'none';
+    });
+
+    window.addEventListener('click', function(event) {
+        if (event.target == helpModal) {
+            helpModal.style.display = 'none';
+        }
+    });
+}

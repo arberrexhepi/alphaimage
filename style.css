@@ -19,7 +19,59 @@ body {
 
 .tool-panel label {
     font-size: 0.8em;
+    display: block; /* Ensure labels take full width for better layout */
+    margin-bottom: 2px; /* Space below label */
 }
+
+/* Styling for new Resize Input Fields */
+#resizeWidthInput,
+#resizeHeightInput {
+    color: white;
+    background-color: #5a5a5a; /* Dark grey background */
+    border: 1px solid #777;   /* Slightly lighter border */
+    padding: 5px;
+    width: 70px;              /* Fixed width */
+    border-radius: 3px;
+    margin-bottom: 8px;       /* Space below each input */
+    box-sizing: border-box;
+}
+
+/* Remove spinner arrows for number inputs (optional, for cleaner look) */
+#resizeWidthInput::-webkit-outer-spin-button,
+#resizeWidthInput::-webkit-inner-spin-button,
+#resizeHeightInput::-webkit-outer-spin-button,
+#resizeHeightInput::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+}
+#resizeWidthInput[type=number],
+#resizeHeightInput[type=number] {
+    -moz-appearance: textfield; /* Firefox */
+}
+
+
+/* Styling for the checkbox container */
+.checkbox-container {
+    margin-top: 5px;
+    margin-bottom: 10px;
+}
+/* Materialize handles checkbox label color by default, should be okay. */
+
+
+/* Styling for the tool-section */
+.tool-section {
+    padding: 10px 0; /* Vertical padding */
+    margin-top: 10px;  /* Margin above section */
+    border-top: 1px solid #ddd; /* Separator line, matches panel border */
+    margin-bottom: 5px; /* Space below section */
+}
+
+.tool-section h6 {
+    font-size: 1rem; /* More appropriate size for this context */
+    color: #333;      /* Standard text color */
+    margin-bottom: 10px; /* Space below header */
+}
+
 
 .tool-panel input[type="range"] {
     -webkit-appearance: none;
@@ -116,4 +168,60 @@ body {
         flex: 0 0 auto;
         min-width: max-content;
     }
+}
+
+/* Modal Styles for Help Instructions */
+.modal {
+    display: none;  /* Hidden by default via CSS */
+    position: fixed; /* Stay in place */
+    z-index: 1001; /* Sit on top of other content, but below .tool-panel if it's higher */
+    left: 0;
+    top: 0;
+    width: 100%; /* Full width */
+    height: 100%; /* Full height */
+    overflow: auto; /* Enable scroll if needed */
+    background-color: rgba(0,0,0,0.4); /* Black w/ opacity for overlay */
+}
+
+.modal-content {
+    background-color: #fefefe; /* White background for modal content */
+    color: #333; /* Dark text for readability */
+    margin: 10% auto; /* 10% from the top and centered horizontally */
+    padding: 25px;
+    border: 1px solid #888;
+    width: 80%; 
+    max-width: 600px; /* Max width for larger screens */
+    position: relative; /* For positioning the close button */
+    border-radius: 8px;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+}
+
+/* Ensure #instructions div (if it had specific display properties) is block inside modal */
+#helpModal #instructions {
+    display: block; /* Make sure it's visible when modal is shown */
+    text-align: left; /* Override center-align if desired for modal content */
+    margin-top: 20px; /* Add some space below the close button if needed */
+}
+
+#helpModal #instructions h5 {
+    text-align: center; /* Keep heading centered */
+    margin-bottom: 15px;
+}
+
+
+.close-button {
+    color: #aaa;
+    position: absolute; 
+    top: 10px;
+    right: 20px;
+    font-size: 28px;
+    font-weight: bold;
+    line-height: 1; /* Ensure consistent vertical alignment */
+}
+
+.close-button:hover,
+.close-button:focus {
+    color: black;
+    text-decoration: none;
+    cursor: pointer;
 }

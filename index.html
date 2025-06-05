@@ -1,60 +1,26 @@
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Background Remover</title>
-    <link href="https://fonts.googleapis.com/css?family=Roboto:400,500,700&display=swap" rel="stylesheet">
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/css/materialize.min.css" rel="stylesheet">
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css" rel="stylesheet">
-    <link href="style.css" rel="stylesheet">
-</head>
-
-<body>
-    <div class="container">
-        <div class="row">
-            <div class="col s12">
-                <div id="instructions" class="center-align">
-                    <h5>Background Remover</h5>
-                    <p>Remove the background from your images easily.</p>
-                    <p>In desktop mode, Right click to temporarily lock Tool Panel, or catch it!</p>
-                    <p>Upload an image and remove the background.</p>
-                    <p>Click on the image to select the area you want to keep.</p>
-                    <p>Use the sliders to adjust the tolerance and feathering.</p>
-                    <p>Click "Save as" to download the image.</p>
-                    <p>Click "Undo" to revert the last action.</p>
-                    <p>Click "Redo" to redo the last undone action.</p>
-                    <p>Click "Flood | Global" to switch between flood fill and global selection modes.</p>
-                    <p>Click "Upload" to upload a new image.</p>
-                </div>
-                <canvas id="canvas" width="500" height="500"></canvas>
-            </div>
-        </div>
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Image Processor</title>
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body>
+    <div id="toolPanel">
+      <label for="toleranceSlider">Tolerance:</label>
+      <input type="range" min="0" max="100" value="20" id="toleranceSlider" />
+      <label for="featherSlider">Feather:</label>
+      <input type="range" min="0" max="50" value="10" id="featherSlider" />
+      <label for="floodToggle">Flood Fill</label>
+      <input type="check" id="floodToggle" />
+      <span id="toggleIndicator">(off)</span>
+      <button id="undoButton">Undo</button>
+      <button id="redoButton">Redo</button>
+      <button id="saveButton">Save</button>
     </div>
-
-    <div id="toolPanel" class="tool-panel">
-        <button id="undoButton" class="btn-small">Undo</button>
-        <button id="redoButton" class="btn-small">Redo</button>
-        <div class="color-mode-switch">
-            <label>
-                <input type="checkbox" id="floodToggle" checked>
-                <span>Flood | Global <span id="toggleIndicator">(off)</span></span>
-            </label>
-        </div>
-
-        <label for="toleranceSlider">Tolerance</label>
-        <input type="range" id="toleranceSlider" min="0" max="100" value="2" class="range-input">
-        <label for="featherSlider">Feather</label>
-        <input type="range" id="featherSlider" min="0" max="100" step="0.5" value="1">
-
-        <button id="saveButton" class="btn-small">Save as</button>
-        <div class="file-field input-field">
-            <div class="btn-small">
-                <span>Upload</span>
-                <input type="file" id="imageUpload" accept=".jpg, .jpeg, .png">
-            </div>
-        </div>
-
-
-    </div>
-
-    <script src="app.js"></script>
-</body>
+    <input type="file" id="imageUpload" />
+    <canvas id="canvas"></canvas>
+    <div id="instructions">Upload an image to start</div>
+  </body>
+  <script type="module" src="modules/main.js"></script>
+</html>
